@@ -36,9 +36,13 @@ Block 8 (card classification) is commented out in the SQL. Blocks 10-13 (user at
 transaction preference, home location, business scenario) were prototyped and disabled
 in the original DataWorks node and are not included in this file.
 
+The script starts with `DROP TABLE IF EXISTS`, so every run rebuilds the output table from scratch.
+
+Block 5 is keyed by merchant × MCC, and a transaction carries no MCC. When a merchant has several
+MCC rows in the same snapshot, the one with the highest `total_cnt_90d` is kept
+(ties broken by `mcc_cat_code`).
+
 ## Known issues / to review
 - Block 6 joins on `MAX_PT(...)` (latest partition), not a point-in-time snapshot:
   possible leakage for historical samples.
-- The `INSERT` column order does not match the `CREATE TABLE` order for the date
-  columns (`mexico_city_time` is selected before `transaction_time`).
 - Output includes `name` (PII); consider dropping it before exporting data.
