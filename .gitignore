@@ -12,3 +12,12 @@ data/
 __pycache__/
 .ipynb_checkpoints/
 .venv/
+
+# OS / editor cache files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
