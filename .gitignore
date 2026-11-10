@@ -1,0 +1,14 @@
+# Data (never commit; contains customer information)
+*.parquet
+*.csv
+*.xlsx
+data/
+
+# Credentials
+.env
+*.pem
+
+# Python / Jupyter
+__pycache__/
+.ipynb_checkpoints/
+.venv/
