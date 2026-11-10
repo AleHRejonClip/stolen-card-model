@@ -16,6 +16,9 @@
 --                                  rank events (e.g. 2026-05-01);
 --                                  must be <= the earliest window start
 --********************************************************************--
+-- Always start from a clean table
+DROP TABLE IF EXISTS BaseHub_mx_dev.stolencard_dataset_all_tables;
+
 CREATE TABLE IF NOT EXISTS BaseHub_mx_dev.stolencard_dataset_all_tables(
     -- 0. Card transactions & label
     sample_type STRING,
@@ -2105,7 +2108,7 @@ merchant_txns AS (
         s.*,
         m.dt AS dt_merchant_txns,
         CAST(TO_DATE(m.dt, 'yyyyMMdd') AS DATE) AS dt_merchant_txns_converted,
-        ROW_NUMBER() OVER (PARTITION BY s.user_id, s.trans_id ORDER BY DATEDIFF(s.transaction_mexico_time, CAST(TO_DATE(m.dt, 'yyyyMMdd') AS DATE))) AS rn_merchant_txns,
+        ROW_NUMBER() OVER (PARTITION BY s.user_id, s.trans_id ORDER BY DATEDIFF(s.transaction_mexico_time, CAST(TO_DATE(m.dt, 'yyyyMMdd') AS DATE)), m.total_cnt_90d DESC, m.mcc_cat_code) AS rn_merchant_txns,
         m.mcc_cat_code, m.merchant_size_type AS merchant_size_type_merch, m.succ_cnt_1d AS succ_cnt_1d_merch, m.succ_amt_1d AS succ_amt_1d_merch,
         m.fail_cnt_1d AS fail_cnt_1d_merch, m.fail_amt_1d AS fail_amt_1d_merch, m.total_cnt_1d AS total_cnt_1d_merch, m.total_amt_1d AS total_amt_1d_merch,
          m.succ_rate_cnt_1d AS succ_rate_cnt_1d_merch, m.succ_rate_amt_1d AS succ_rate_amt_1d_merch, m.succ_cnt_7d AS succ_cnt_7d_merch,
@@ -2145,7 +2148,7 @@ merchant_txns AS (
         FROM Basehub_mx.dws_risk_merchant_mcc_txn_basic_dd
         WHERE dt >= REPLACE('${lookback_dt}', '-', '')
         AND dt <= REPLACE('${oot_end}', '-', '')
-        ) m ON s.merchant_id = m.mc_merchant_id AND s.transaction_time <= m.last_succ_txn_date
+        ) m ON s.merchant_id = m.mc_merchant_id AND s.transaction_mexico_time > CAST(TO_DATE(m.dt, 'yyyyMMdd') AS DATE)
 ),
 
 samples_merchant_txns AS (
@@ -2318,7 +2321,7 @@ samples_card_profile_payment AS (
 INSERT OVERWRITE TABLE BaseHub_mx_dev.stolencard_dataset_all_tables
     SELECT
         -- 0. Card transactions & label
-        sample_type, trans_id, transaction_amount, mexico_city_time, transaction_time, transaction_timestamp, transaction_mexico_time, transaction_mexico_timestamp,
+        sample_type, trans_id, transaction_amount, transaction_time, transaction_mexico_time, transaction_timestamp, transaction_mexico_timestamp, mexico_city_time,
         scenario_name, running_total_amount, fraud_label,
         -- 1. Demographic information
         name, age, gender, enable_biometric, kyc_kyb_level, first_regist_date, first_regist_days, first_bindcard_date, first_bindcard_days,
